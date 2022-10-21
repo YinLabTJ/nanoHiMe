@@ -1,0 +1,21 @@
+#!/bin/bash
+
+if [[ $#<5 || $#>6 ]]; then
+	echo "usage: NanoHiMe_mCG ref_fasta event_file output_prefix win_width step_width []"
+	exit 1
+
+fi
+
+pipe_dir=$(readlink -f $(dirname "${BASH_SOURCE[0]}"))
+
+if [[ $6>0 ]]; then 
+	$pipe_dir/prepare_peakregion/read_loc $2 > $3.bed.tmp
+	bedtools intersect -a $3.bed.tmp -b $6 > $3.overlap.tmp
+	$pipe_dir/prepare_peakregion/event_filter $2 $3.overlap.tmp > $3.eventalign_overlapped.txt
+	rm $3.bed.tmp $3.overlap.tmp
+	input_event=$3.eventalign_overlapped.txt
+else
+	input_event=$2
+fi
+
+$pipe_dir/bin/methylate_ma $pipe_dir/model $1 $input_event $4 $5 > $3.methylation.txt

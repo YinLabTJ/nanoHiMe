@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [[ $#<3 ]]; then
+	echo "usage: NanoHiMe_mCG ref_fasta event_file output_prefix"
+	exit 1
+
+fi
+
+pipe_dir=$(readlink -f $(dirname "${BASH_SOURCE[0]}"))
+
+$pipe_dir/bin/methylate_cg $pipe_dir/model $1 $2 > $3.methylation.txt

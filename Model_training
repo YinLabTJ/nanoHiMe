@@ -1,0 +1,63 @@
+#!/usr/bin/perl -w
+use FindBin;
+use Getopt::Long;
+use File::Basename;
+use Cwd;
+
+my $perl_main="$FindBin::Bin/$FindBin::Script";
+my ($filename, $dir) = fileparse($perl_main);
+
+
+my $usage=<<USAGE;
+usage:
+	$0
+	-m	<str>	Modification : ma, mcg or ma_mcg
+	-c	[int]	Cycles to re-alignment events :  [default: 5]
+	-r	<str>	Reference fasta with samtools index (abs_path)
+	-e	<str>	Input eventalign files from nanopolish (abs_path)
+	-o	[str]	Output directory (abs_path) [default: .]
+	-g	[int]	Number of gaussian distribution in each 6-mer [default: 3]
+	-p	[str]	File with initial values of EM parameters (abs_path) [default: .../perl_script/EM_shift.txt]
+	-i	[int]	Max iterations of EM [default: 1000]
+
+USAGE
+
+my ($modification,$round,$ref_fasta,$input_eventalign,$outdir,$gaussian_num,$gaussian_params_file,$Em_iteration);
+GetOptions(
+	"m:s" => \$modification,
+	"c:s" => \$round,
+	"r:s" => \$ref_fasta,
+	"e:s" => \$input_eventalign,
+	"o:s" => \$outdir,
+	"g:s" => \$gaussian_num,
+	"p:s" => \$gaussian_params_file,
+	"i:s" => \$Em_iteration,
+);
+die $usage unless ($modification && $ref_fasta && $input_eventalign);
+
+
+my $workdir = cwd;
+
+
+$round ||= 5;
+$gaussian_num ||= 3;
+$Em_iteration ||= 1000;
+$outdir ||= $workdir;
+$gaussian_params_file ||= "$dir/EM_shift.txt";
+
+$old_model="$dir/model/PCR/parameter.sort.txt";
+for($i=1;$i<=$round;$i++){
+	`mkdir -p $outdir/round$i`;
+	`$dir/bin/re_align.$modification $old_model $ref_fasta $input_eventalign > $outdir/round$i/training.eventalign.txt`;
+	`perl $dir/perl_script/mean_and_stdv.pl $outdir/round$i/training.eventalign.txt $outdir/round$i/`;
+	`bash $dir/shell_script/filter.$modification.sh $outdir/round$i/training.eventalign.txt_mean_stdv`;
+	`bash $dir/shell_script/abd.$modification.sh $outdir/round$i/training.eventalign.txt_mean_stdv $outdir/round$i/training.eventalign.txt_coefficients $dir`;
+	`mkdir -p $outdir/round$i/6mer`;
+	`$dir/bin/filter_border_check $outdir/round$i/training.eventalign.txt | sort -k2,2 > $outdir/round$i/training.eventalign.6mer.txt`;
+	`perl $dir/perl_script/split_kmer.pl $outdir/round$i/training.eventalign.6mer.txt $outdir/round$i/6mer`;
+	`perl $dir/perl_script/adjust.pl $outdir/round$i/training.eventalign.txt_coefficients/coefficients.abd $outdir/round$i/6mer $outdir/round$i/6mer_final`;
+	`perl $dir/perl_script/single_Gaussian.pl $outdir/round$i/training.eventalign.txt_mean_stdv $outdir/round$i/6mer_final $old_model | sort -k1,1 > $outdir/round$i/parameter.txt`;	     
+	$old_model="$outdir/round$i/parameter.txt";
+}
+
+`perl $dir/perl_script/EM_run.pl $old_model $outdir/round$round/6mer_final $outdir/round$round/training.eventalign.txt_mean_stdv/filtered.num.txt $outdir/round$round/training.eventalign.txt_coefficients/coefficients.abd $gaussian_num $Em_iteration $gaussian_params_file $outdir/EM.out`;

@@ -1,0 +1,27 @@
+#!/bin/bash
+
+pipe_dir=$(readlink -f $(dirname "${BASH_SOURCE[0]}"))
+export LD_LIBRARY_PATH=$pipe_dir/bin/htslib
+if [[ $#<4 || $#>7 ]]; then
+	echo "usage: nanoHiMe 6mA ref_fasta event_file output_prefix win_width step_length [peak bed file]"
+	echo "   or  nanoHiMe mCG ref_fasta event_file output_prefix"
+	exit 1
+
+fi
+
+if [[ $1 == "6mA" ]]; then
+	if [[ $#>6 ]]; then
+		$pipe_dir/nanoHiMe_6mA $2 $3 $4 $5 $6 $7
+	else
+		$pipe_dir/nanoHiMe_6mA $2 $3 $4 $5 $6
+	fi
+elif [[ $1 == "mCG" ]]; then
+	$pipe_dir/nanoHiMe_mCG $2 $3 $4
+else
+	echo "usage: nanoHiMe 6mA ref_fasta event_file output_prefix win_width step_length[peak bed file]"
+	echo "   or  nanoHiMe mCG ref_fasta event_file output_prefix"
+	exit 1
+fi
+
+
+
