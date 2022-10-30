@@ -1,0 +1,15 @@
+$pre=shift;
+@t=split /\//,$pre;
+$chr=$t[-1];
+open IN,"coefficients.out";
+<IN>;
+$l1=<IN>; chomp($l1);
+$l1=~s/^\s+//;
+@t1=split /\s+/,$l1;
+print "$chr\t$t1[0]\t$t1[1]\t";
+<IN>;
+$l2=<IN>; chomp($l2);
+$l2=~s/^\s+//;
+@t2=split /\s+/,$l2;
+print "$t2[0]\n";
+close IN;

@@ -1,0 +1,4 @@
+mu1_shift	sigma1_shift	omega1	mu2_shift	sigma2_shift	omega2	mu3_shift	sigma3_shift	omega3
+0	0	0.2	-5	1	0.4	5	1	0.4
+0	0	0.2	0	1	0.4	5	1	0.4
+0	0	0.2	-5	1	0.4	0	1	0.4
